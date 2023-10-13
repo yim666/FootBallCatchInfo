@@ -61,13 +61,13 @@ public class PaChong {
                 ap += aList.get(x).getPonit();
             }
             if (hp - ap > 1000) {
-                writer.write("    胜@@@@@" + hp + "#####" + ap);
+                writer.write("    胜   @@@@@   " + hp + "   #####   " + ap);
                 writer.newLine(); // 换行
             } else if (ap - hp > 1000) {
-                writer.write("    负@@@@@" + hp + "#####" + ap);
+                writer.write("    负   @@@@@   " + hp + "   #####   " + ap);
                 writer.newLine(); // 换行
             } else {
-                writer.write("    平@@@@@" + hp + "#####" + ap);
+                writer.write("    平   @@@@@   " + hp + "   #####   " + ap);
                 writer.newLine(); // 换行
             }
             writer.write("================================================================");
