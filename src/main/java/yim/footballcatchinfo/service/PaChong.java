@@ -9,10 +9,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import yim.footballcatchinfo.pojo.Datas;
-import yim.footballcatchinfo.pojo.JsonRootBean;
-import yim.footballcatchinfo.pojo.Player;
-import yim.footballcatchinfo.pojo.Team;
+import yim.footballcatchinfo.pojo.*;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -36,12 +33,16 @@ public class PaChong {
 
     public static void main(String[] args) throws IOException {
         // 创建文件写入流
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now()));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + ".txt"));
         List<Datas> datas = _2daysMatches();
         for (Datas d : datas) {
             //比赛信息
-            writer.write(d.getCompetitionId() + "  " + d.getHomeTeamName() + " VS " + d.getAwayTeamName() + "   " + d.getCompetitionName());
-            writer.newLine(); // 换行
+            String firstL = d.getGfId() + "  " + d.getCompetitionName() + "  " + d.getHomeTeamName() + " VS " + d.getAwayTeamName();
+            while (firstL.length() < 30) {
+                firstL += "一";
+            }
+            writer.write(firstL);
+//            writer.newLine(); // 换行
             Document homePage = getWebPageByChrome("https://www.tzuqiu.cc/teams/" + d.getHomeTeamId() + "/show.do");
             Document awayPage = getWebPageByChrome("https://www.tzuqiu.cc/teams/" + d.getAwayTeamId() + "/show.do");
             Team h = new Team(d.getHomeTeamName());
@@ -60,17 +61,20 @@ public class PaChong {
             for (int x = 0; x < 11; x++) {
                 ap += aList.get(x).getPonit();
             }
-            if (hp - ap > 1000) {
-                writer.write("    胜   @@@@@   " + hp + "   #####   " + ap);
+            if (hp / ap > 1.2) {
+                writer.write("  《胜胜胜》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @");
+                writer.write(hp + "   ###   " + ap);
                 writer.newLine(); // 换行
-            } else if (ap - hp > 1000) {
-                writer.write("    负   @@@@@   " + hp + "   #####   " + ap);
+            } else if (ap / hp > 1.2) {
+                writer.write("  《负负负》    " + "倍数: " + String.valueOf(ap / hp).substring(0, 5) + "     @");
+                writer.write(hp + "   ###   " + ap);
                 writer.newLine(); // 换行
             } else {
-                writer.write("    平   @@@@@   " + hp + "   #####   " + ap);
+                writer.write("  《平平平》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @" + ap / hp + "--->");
+                writer.write(hp + "   ###   " + ap);
                 writer.newLine(); // 换行
             }
-            writer.write("================================================================");
+            writer.write("=======================================================================");
             writer.newLine(); // 换行
             writer.flush();
         }
@@ -116,7 +120,17 @@ public class PaChong {
                 + date.toString().replaceAll("-", ".") + "+%E8%87%B3+" + date1.toString().replaceAll("-", ".");
         String s = sendGetRequest(url2);
         JsonRootBean bean = new Gson().fromJson(s, JsonRootBean.class);
-        return bean.getDatas();
+
+        //当天比赛
+        String jc = sendGetRequest("https://webapi.sporttery.cn/gateway/jc/football/getMatchListV1.qry?clientCode=3001");
+        JCJson jcMatches = new Gson().fromJson(jc, JCJson.class);
+        List<Datas> collect = bean.getDatas().stream().filter(itemA ->
+                        jcMatches.getValue().getMatchInfoList().get(0).getSubMatchList()
+                                .stream().anyMatch(itemB -> itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())&& itemA.setGfId(itemB.getMatchNum())))
+                .collect(Collectors.toList());
+        List<Datas> collect1 = collect.stream().sorted(Comparator.comparingInt(Datas::getGfId)).collect(Collectors.toList());
+        System.out.println(collect1);
+        return collect1;
     }
 
 }

@@ -3,6 +3,7 @@ package yim.footballcatchinfo.pojo;
 /**
  * Copyright 2023 bejson.com
  */
+
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -17,7 +18,11 @@ import java.util.Date;
 @Data
 @Accessors(chain = true)
 public class Datas {
-
+    private Integer gfId;
+    public boolean setGfId(Integer id){
+        gfId =id;
+        return true;
+    }
     private Date matchDate;
     private String hasPreview;
     private int competitionId;
