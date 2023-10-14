@@ -16,19 +16,18 @@ import java.net.URL;
 
 public class WebPageService {
 
-    public static  WebDriver driver =null;
+    public static  ChromeOptions options =null;
     static {
         //        System.setProperty("webdriver.chrome.bin", "C:/Users/yimen/IdeaProjects/FootBallCatchInfo/tooljar/chrome-win64/chrome.exe");
         // 设置 Chrome WebDriver 的路径
         System.setProperty("webdriver.chrome.driver", "C:\\Users\\mySpace\\workspace\\projects\\FootBallCatchInfo\\tooljar\\chromedriver.exe");
 
         // 配置 Chrome WebDriver 选项
-        ChromeOptions options = new ChromeOptions();
+         options = new ChromeOptions();
         // 隐藏浏览器窗口
         options.addArguments("--headless");
         options.addArguments("--remote-allow-origins=*");
-        // 创建 Chrome WebDriver 实例
-        driver = new ChromeDriver(options);
+
     }
     public static String sendGetRequest(String url) throws IOException {
         HttpURLConnection connection = null;
@@ -57,14 +56,20 @@ public class WebPageService {
         return response.toString();
     }
 
-    public static Document getWebPageByChrome(String url){
+    public static Document getWebPageByChrome(String url,WebDriver driver) throws Exception {
+
         // 打开网页
         driver.get(url);
 
         // 获取页面内容
         String pageContent = driver.getPageSource();
-
+//        driver.close();
         Document parse = Jsoup.parse(pageContent);
+        if(parse.select("head").select("title").toString().contains("unavailable")){
+            System.out.println("$$$$$$$$$$$$$$ Nginx ERROR $$$$$$$$$$$$$$");
+            Thread.sleep(1000);
+            parse =  getWebPageByChrome(url,driver);
+        }
         return parse;
     }
 
