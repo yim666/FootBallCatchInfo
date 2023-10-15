@@ -16,6 +16,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,10 +38,12 @@ public class PaChong {
     public static void main(String[] args) throws Exception {
 
         // 创建文件写入流
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + ".txt"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now()+"_"+ LocalTime.now().getHour() + ".txt"));
         List<Datas> datas = _2daysMatches();
         List<CompletableFuture<String>> futures = new ArrayList<>();
-
+        writer.write("===================身价>6600一切皆有可能============");
+        writer.flush();
+        writer.newLine();
         for (Datas d : datas) {
             CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
                 try {
@@ -67,6 +71,12 @@ public class PaChong {
                     Double hp = 0.0;
                     Double ap = 0.0;
 
+                    Double hScore = 0.0;
+                    Double aScore = 0.0;
+
+                    Double hValue = 0.0;
+                    Double aValue = 0.0;
+
                     for (int x = 0; x < 11; x++) {
                         Player ph = hList.get(x);
                         //计算近一个月比赛的平均分
@@ -92,6 +102,8 @@ public class PaChong {
                             ph.setPonit(ph.getScore() * ph.getValue());
                         }
                         hp += ph.getPonit();
+                        hScore += ph.getScore();
+                        hValue += ph.getValue();
                     }
 
 
@@ -120,6 +132,8 @@ public class PaChong {
                             pa.setPonit(pa.getScore() * pa.getValue());
                         }
                         ap += pa.getPonit();
+                        aScore += pa.getScore();
+                        aValue += pa.getValue();
                     }
 
 
@@ -127,16 +141,22 @@ public class PaChong {
 
                         b.append("  《胜胜胜》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @");
                         b.append(hp + "   ###   " + ap);
+                        b.append("  球员状态: "+hScore + "   ###   " + aScore);
+                        b.append("  总身价: "+hValue + "   ###   " + aValue);
                         b.append("\n");
                     } else if (ap / hp > 1.2) {
 
                         b.append("  《负负负》    " + "倍数: " + String.valueOf(ap / hp).substring(0, 5) + "     @");
                         b.append(hp + "   ###   " + ap);
+                        b.append("  球员状态: "+hScore + "   ###   " + aScore);
+                        b.append("  总身价: "+hValue + "   ###   " + aValue);
                         b.append("\n"); // 换行
                     } else {
 
-                        b.append("  《平平平》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @" + ap / hp + "--->");
+                        b.append("  《平平平》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @");
                         b.append(hp + "   ###   " + ap);
+                        b.append("  球员状态: "+hScore + "   ###   " + aScore);
+                        b.append("  总身价: "+hValue + "   ###   " + aValue);
                         b.append("\n"); // 换行
                     }
                     b.append("=======================================================================");
