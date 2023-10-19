@@ -33,7 +33,7 @@ import static yim.footballcatchinfo.service.WebPageService.*;
  */
 public class PaChong {
     static String url = "https://www.tzuqiu.cc";
-    static String filePath = "C:\\Users\\mySpace\\workspace\\projects\\FootBallCatchInfo\\tooljar\\result\\";
+    static String filePath = ".\\tooljar\\result\\";
 
     public static void main(String[] args) throws Exception {
 
@@ -46,11 +46,12 @@ public class PaChong {
         writer.newLine();
         for (Datas d : datas) {
             CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+                StringBuilder b = new StringBuilder();
+
                 try {
 
                     // 创建 Chrome WebDriver 实例
                     WebDriver driver = new ChromeDriver(options);
-                    StringBuilder b = new StringBuilder();
                     //比赛信息
                     String firstL = d.getGfId() + "  " + d.getCompetitionName() + "  " + d.getHomeTeamName() + " VS " + d.getAwayTeamName();
                     while (firstL.length() < 30) {
@@ -66,9 +67,16 @@ public class PaChong {
 
                     List<Player> hList = h.getPlayers().stream().sorted(Comparator.comparingInt(Player::getTimeAll).reversed()).collect(Collectors.toList());
 
-
                     List<Player> aList = a.getPlayers().stream().sorted(Comparator.comparingInt(Player::getTimeAll).reversed()).collect(Collectors.toList());
-                    Double hp = 0.0;
+
+                    if(hList.size() <15 || aList.size()<15){
+                        b.append("===ERROR!!!!!人数不足 ===="+"https://www.tzuqiu.cc/teams/" + d.getHomeTeamId() + "/show.do"+"   "+"https://www.tzuqiu.cc/teams/" + d.getAwayTeamId() + "/show.do");
+                        b.append("\n"); // 换行
+                        b.append("=======================================================================");
+                        return b.toString();
+                    }
+
+                        Double hp = 0.0;
                     Double ap = 0.0;
 
                     Double hScore = 0.0;
@@ -77,8 +85,9 @@ public class PaChong {
                     Double hValue = 0.0;
                     Double aValue = 0.0;
 
-                    for (int x = 0; x < 11; x++) {
+                    for (int x = 0; x < 14; x++) {
                         Player ph = hList.get(x);
+                        System.out.println("球员："+ph.toString());
                         //计算近一个月比赛的平均分
                         Document page = getWebPageByChrome(ph.getHref(), driver);
                         Element table = page.getElementsByClass("player-fixture").get(0);
@@ -107,8 +116,9 @@ public class PaChong {
                     }
 
 
-                    for (int x = 0; x < 11; x++) {
+                    for (int x = 0; x < 14; x++) {
                         Player pa = aList.get(x);
+                        System.out.println("球员："+pa.toString());
                         //计算近一个月比赛的平均分
                         Document page = getWebPageByChrome(pa.getHref(), driver);
                         Element table = page.getElementsByClass("player-fixture").get(0);
@@ -161,10 +171,17 @@ public class PaChong {
                     }
                     b.append("=======================================================================");
                     b.append("\n"); // 换行
-
+                    driver.quit();
                     return b.toString();
                 } catch (Exception e) {
+//                    b.append("===ERROR!!!!!====");
+//                    b.append("\n"); // 换行
+//                    b.append("=======================================================================");
+//                    b.append("\n"); // 换行
+//                    System.out.println(e);
+//                    return b.toString();
                     throw new RuntimeException(e);
+
                 }
             });
             futures.add(future);
@@ -235,17 +252,20 @@ public class PaChong {
                 + now.toString().replaceAll("-", ".") + "+%E8%87%B3+" + date1.toString().replaceAll("-", ".");
         String s = sendGetRequest(url2);
         JsonRootBean bean = new Gson().fromJson(s, JsonRootBean.class);
+        List<Datas> collect1 =bean.getDatas();
 
-        //当天竞彩官方比赛
-        String jc = sendGetRequest("https://webapi.sporttery.cn/gateway/jc/football/getMatchListV1.qry?clientCode=3001");
-        JCJson jcMatches = new Gson().fromJson(jc, JCJson.class);
-        List<Datas> collect = bean.getDatas().stream().filter(itemA ->
-                        jcMatches.getValue().getMatchInfoList().get(0).getSubMatchList()
-                                .stream().anyMatch(itemB -> itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())
-                                        && itemA.getAwayTeamName().equals(itemB.getAwayTeamAllName()) && itemA.setGfId(itemB.getMatchNum())))
-                .collect(Collectors.toList());
-        List<Datas> collect1 = collect.stream().sorted(Comparator.comparingInt(Datas::getGfId)).collect(Collectors.toList());
-        System.out.println(collect1);
+//         //只看当天竞彩官方比赛
+//        String jc = sendGetRequest("https://webapi.sporttery.cn/gateway/jc/football/getMatchListV1.qry?clientCode=3001");
+//        JCJson jcMatches = new Gson().fromJson(jc, JCJson.class);
+//        List<Datas> collect = bean.getDatas().stream().filter(itemA ->
+//                        jcMatches.getValue().getMatchInfoList().get(0).getSubMatchList()
+//                                .stream().anyMatch(itemB -> itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())
+//                                        && itemA.getAwayTeamName().equals(itemB.getAwayTeamAllName()) && itemA.setGfId(itemB.getMatchNum())))
+//                .collect(Collectors.toList());
+//        collect1 = collect.stream().sorted(Comparator.comparingInt(Datas::getGfId)).collect(Collectors.toList());
+//        System.out.println(collect1);
+
+
         return collect1;
     }
 

@@ -20,8 +20,9 @@ public class WebPageService {
     static {
         //        System.setProperty("webdriver.chrome.bin", "C:/Users/yimen/IdeaProjects/FootBallCatchInfo/tooljar/chrome-win64/chrome.exe");
         // 设置 Chrome WebDriver 的路径
-        System.setProperty("webdriver.chrome.driver", "C:\\Users\\mySpace\\workspace\\projects\\FootBallCatchInfo\\tooljar\\chromedriver.exe");
-
+        System.setProperty("webdriver.chrome.driver", ".\\tooljar\\chromedriver.exe");
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "6667");
         // 配置 Chrome WebDriver 选项
          options = new ChromeOptions();
         // 隐藏浏览器窗口
@@ -67,7 +68,7 @@ public class WebPageService {
         Document parse = Jsoup.parse(pageContent);
         if(parse.select("head").select("title").toString().contains("unavailable")){
             System.out.println("$$$$$$$$$$$$$$ Nginx ERROR $$$$$$$$$$$$$$");
-            Thread.sleep(1000);
+            Thread.sleep(2000);
             parse =  getWebPageByChrome(url,driver);
         }
         return parse;
