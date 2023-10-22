@@ -1,14 +1,19 @@
 package yim.footballcatchinfo.service;
 
+import org.dom4j.io.SAXReader;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.CapabilityType;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -16,20 +21,8 @@ import java.net.URL;
 
 public class WebPageService {
 
-    public static  ChromeOptions options =null;
-    static {
-        //        System.setProperty("webdriver.chrome.bin", "C:/Users/yimen/IdeaProjects/FootBallCatchInfo/tooljar/chrome-win64/chrome.exe");
-        // 设置 Chrome WebDriver 的路径
-        System.setProperty("webdriver.chrome.driver", ".\\tooljar\\chromedriver.exe");
-        System.setProperty("http.proxyHost", "127.0.0.1");
-        System.setProperty("http.proxyPort", "6667");
-        // 配置 Chrome WebDriver 选项
-         options = new ChromeOptions();
-        // 隐藏浏览器窗口
-        options.addArguments("--headless");
-        options.addArguments("--remote-allow-origins=*");
+    // 创建一个SAXReader对象来解析XML字符串
 
-    }
     public static String sendGetRequest(String url) throws IOException {
         HttpURLConnection connection = null;
         BufferedReader reader = null;
@@ -65,6 +58,7 @@ public class WebPageService {
         // 获取页面内容
         String pageContent = driver.getPageSource();
 //        driver.close();
+
         Document parse = Jsoup.parse(pageContent);
         if(parse.select("head").select("title").toString().contains("unavailable")){
             System.out.println("$$$$$$$$$$$$$$ Nginx ERROR $$$$$$$$$$$$$$");

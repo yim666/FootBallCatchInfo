@@ -4,17 +4,21 @@ import com.google.gson.Gson;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.remote.DesiredCapabilities;
 import yim.footballcatchinfo.pojo.*;
 import yim.footballcatchinfo.uitls.Utils;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,12 +38,33 @@ import static yim.footballcatchinfo.service.WebPageService.*;
 public class PaChong {
     static String url = "https://www.tzuqiu.cc";
     static String filePath = ".\\tooljar\\result\\";
+    static int playerSize = 13;
 
     public static void main(String[] args) throws Exception {
+        // 设置 Chrome WebDriver 的路径
+        System.setProperty("webdriver.chrome.driver", ".\\tooljar\\chromedriver.exe");
+
+        // 配置 Chrome WebDriver 选项
+        ChromeOptions   options = new ChromeOptions();
+        // 隐藏浏览器窗口
+        options.addArguments("--headless");
+        options.addArguments("--remote-allow-origins=*");
+        options.addArguments("--ignore-certificate-errors");
+//        options.addArguments("--test-type");
+        String proxyServer = "127.0.0.1:6666";
+//       proxy
+        Proxy proxy = new Proxy().setHttpProxy(proxyServer).setSslProxy(proxyServer);
+        options.setProxy(proxy);
+
+        // 设置变量ACCEPT_SSL_CERTS的值为True
+//        options.setCapability(CapabilityType.ACCEPT_SSL_CERTS, true);
 
         // 创建文件写入流
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now()+"_"+ LocalTime.now().getHour() + ".txt"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + "_" + LocalTime.now().getHour() + ".txt"));
+        BufferedWriter writerERR = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + "_" + LocalTime.now().getHour() + "ERROR.txt"));
         List<Datas> datas = _2daysMatches();
+//        System.setProperty("http.proxyHost", "127.0.0.1");
+//        System.setProperty("http.proxyPort", "6666");
         List<CompletableFuture<String>> futures = new ArrayList<>();
         writer.write("===================身价>6600一切皆有可能============");
         writer.flush();
@@ -51,7 +76,15 @@ public class PaChong {
                 try {
 
                     // 创建 Chrome WebDriver 实例
-                    WebDriver driver = new ChromeDriver(options);
+                    ChromeDriverService service = new ChromeDriverService.Builder()
+                            .usingDriverExecutable(new File(".\\tooljar\\chromedriver.exe"))
+                            .usingAnyFreePort().build();
+                    service.start();
+//                    ChromeOptions cap = options;
+
+                    WebDriver driver = new ChromeDriver(service, options);
+                    driver.manage().timeouts().implicitlyWait(Duration.ofMillis(2000));
+
                     //比赛信息
                     String firstL = d.getGfId() + "  " + d.getCompetitionName() + "  " + d.getHomeTeamName() + " VS " + d.getAwayTeamName();
                     while (firstL.length() < 30) {
@@ -62,21 +95,30 @@ public class PaChong {
                     Document awayPage = getWebPageByChrome("https://www.tzuqiu.cc/teams/" + d.getAwayTeamId() + "/show.do", driver);
                     Team h = new Team(d.getHomeTeamName());
                     Team a = new Team(d.getAwayTeamName());
+                    Thread.sleep(1500);
                     getTeamPlayers(homePage, h);
+                    Thread.sleep(1500);
                     getTeamPlayers(awayPage, a);
 
                     List<Player> hList = h.getPlayers().stream().sorted(Comparator.comparingInt(Player::getTimeAll).reversed()).collect(Collectors.toList());
 
                     List<Player> aList = a.getPlayers().stream().sorted(Comparator.comparingInt(Player::getTimeAll).reversed()).collect(Collectors.toList());
 
-                    if(hList.size() <15 || aList.size()<15){
-                        b.append("===ERROR!!!!!人数不足 ===="+"https://www.tzuqiu.cc/teams/" + d.getHomeTeamId() + "/show.do"+"   "+"https://www.tzuqiu.cc/teams/" + d.getAwayTeamId() + "/show.do");
+                    if (hList.size() < playerSize || aList.size() < playerSize) {
+                        writerERR.write(homePage.toString());
+                        writerERR.write(awayPage.toString());
+                        writerERR.flush();
+                        b.append("===ERROR!!!!!人数不足 ====" + "https://www.tzuqiu.cc/teams/" + d.getHomeTeamId() + "/show.do" + "   " + "https://www.tzuqiu.cc/teams/" + d.getAwayTeamId() + "/show.do");
                         b.append("\n"); // 换行
                         b.append("=======================================================================");
+                        b.append("\n"); // 换行
+
+//                        driver.quit();
+                        service.stop();
                         return b.toString();
                     }
 
-                        Double hp = 0.0;
+                    Double hp = 0.0;
                     Double ap = 0.0;
 
                     Double hScore = 0.0;
@@ -85,11 +127,27 @@ public class PaChong {
                     Double hValue = 0.0;
                     Double aValue = 0.0;
 
-                    for (int x = 0; x < 14; x++) {
+                    for (int x = 0; x < playerSize; x++) {
                         Player ph = hList.get(x);
-                        System.out.println("球员："+ph.toString());
                         //计算近一个月比赛的平均分
                         Document page = getWebPageByChrome(ph.getHref(), driver);
+                        if(page.getElementsByClass("player-fixture").size() == 0){
+                            Thread.sleep(2000);
+                            page = getWebPageByChrome(ph.getHref(), driver);
+                        }
+                        if (page.getElementsByClass("player-fixture").size() == 0) {
+                            writerERR.write(page.toString());
+                            writerERR.flush();
+                            System.out.println("球员：" + ph.toString());
+                            b.append("===ERROR!!!!!近期无比赛 home负 ====" + "球员：" + ph.toString());
+                            b.append("\n"); // 换行
+                            b.append("=======================================================================");
+                            b.append("\n"); // 换行
+
+//                            driver.quit();
+                            service.stop();
+                            return b.toString();
+                        }
                         Element table = page.getElementsByClass("player-fixture").get(0);
                         Elements rows = table.select("tbody tr");
                         Double countPF = 0.0;
@@ -116,11 +174,28 @@ public class PaChong {
                     }
 
 
-                    for (int x = 0; x < 14; x++) {
+                    for (int x = 0; x < playerSize; x++) {
                         Player pa = aList.get(x);
-                        System.out.println("球员："+pa.toString());
+                        System.out.println("球员：" + pa.toString());
                         //计算近一个月比赛的平均分
                         Document page = getWebPageByChrome(pa.getHref(), driver);
+                        if(page.getElementsByClass("player-fixture").size() == 0){
+                            Thread.sleep(2000);
+                            page = getWebPageByChrome(pa.getHref(), driver);
+                        }
+                        if (page.getElementsByClass("player-fixture").size() == 0) {
+                            writerERR.write(page.toString());
+                            writerERR.flush();
+                            System.out.println("球员：" + pa.toString());
+                            b.append("===ERROR!!!!!近期无比赛 home胜 ====" + "球员：" + pa.toString());
+                            b.append("\n"); // 换行
+                            b.append("=======================================================================");
+                            b.append("\n"); // 换行
+//                            driver.quit();
+                            service.stop();
+
+                            return b.toString();
+                        }
                         Element table = page.getElementsByClass("player-fixture").get(0);
                         Elements rows = table.select("tbody tr");
                         Double countPF = 0.0;
@@ -151,27 +226,28 @@ public class PaChong {
 
                         b.append("  《胜胜胜》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @");
                         b.append(hp + "   ###   " + ap);
-                        b.append("  球员状态: "+hScore + "   ###   " + aScore);
-                        b.append("  总身价: "+hValue + "   ###   " + aValue);
+                        b.append("  球员状态: " + hScore + "   ###   " + aScore);
+                        b.append("  总身价: " + hValue + "   ###   " + aValue);
                         b.append("\n");
                     } else if (ap / hp > 1.2) {
 
                         b.append("  《负负负》    " + "倍数: " + String.valueOf(ap / hp).substring(0, 5) + "     @");
                         b.append(hp + "   ###   " + ap);
-                        b.append("  球员状态: "+hScore + "   ###   " + aScore);
-                        b.append("  总身价: "+hValue + "   ###   " + aValue);
+                        b.append("  球员状态: " + hScore + "   ###   " + aScore);
+                        b.append("  总身价: " + hValue + "   ###   " + aValue);
                         b.append("\n"); // 换行
                     } else {
 
                         b.append("  《平平平》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 5) + "     @");
                         b.append(hp + "   ###   " + ap);
-                        b.append("  球员状态: "+hScore + "   ###   " + aScore);
-                        b.append("  总身价: "+hValue + "   ###   " + aValue);
+                        b.append("  球员状态: " + hScore + "   ###   " + aScore);
+                        b.append("  总身价: " + hValue + "   ###   " + aValue);
                         b.append("\n"); // 换行
                     }
                     b.append("=======================================================================");
                     b.append("\n"); // 换行
-                    driver.quit();
+//                    driver.quit();
+                    service.stop();
                     return b.toString();
                 } catch (Exception e) {
 //                    b.append("===ERROR!!!!!====");
@@ -180,6 +256,7 @@ public class PaChong {
 //                    b.append("\n"); // 换行
 //                    System.out.println(e);
 //                    return b.toString();
+
                     throw new RuntimeException(e);
 
                 }
@@ -200,10 +277,12 @@ public class PaChong {
         writer.flush();
 
         writer.close();
+        writerERR.close();
+
 
     }
 
-    private static void getTeamPlayers(Document page, Team t) throws IOException {
+    private static void getTeamPlayers(Document page, Team t)  {
         // 查找具有指定 id 的表格
         Element table = page.getElementById("playersTable");
 
@@ -248,22 +327,33 @@ public class PaChong {
         System.out.println(now);
         LocalDate date1 = now.plusDays(1);
         //        https://www.tzuqiu.cc/matches/queryFixture.json?date=%s+%E8%87%B3+%s
-        String url2 = "https://www.tzuqiu.cc/matches/queryFixture.json?date="
-                + now.toString().replaceAll("-", ".") + "+%E8%87%B3+" + date1.toString().replaceAll("-", ".");
-        String s = sendGetRequest(url2);
-        JsonRootBean bean = new Gson().fromJson(s, JsonRootBean.class);
-        List<Datas> collect1 =bean.getDatas();
+        String url1 = "https://www.tzuqiu.cc/matches/queryFixture.json?date="
+                + now.toString().replaceAll("-", ".") + "+%E8%87%B3+" + now.toString().replaceAll("-", ".");
+        String s = sendGetRequest(url1);
 
+        String url2 = "https://www.tzuqiu.cc/matches/queryFixture.json?date="
+                + date1.toString().replaceAll("-", ".") + "+%E8%87%B3+" + date1.toString().replaceAll("-", ".");
+        String s2 = sendGetRequest(url2);
+        if ("{}".equals(s) || "{}".equals(s2)) {
+            System.out.println("request Error");
+            throw new ConnectException();
+
+        }
+        JsonRootBean bean = new Gson().fromJson(s, JsonRootBean.class);
+        JsonRootBean bean2 = new Gson().fromJson(s2, JsonRootBean.class);
+        List<Datas> collect1 = bean.getDatas();
+        List<Datas> collect2 = bean2.getDatas();
+        collect1.addAll(collect2);
 //         //只看当天竞彩官方比赛
-//        String jc = sendGetRequest("https://webapi.sporttery.cn/gateway/jc/football/getMatchListV1.qry?clientCode=3001");
-//        JCJson jcMatches = new Gson().fromJson(jc, JCJson.class);
-//        List<Datas> collect = bean.getDatas().stream().filter(itemA ->
-//                        jcMatches.getValue().getMatchInfoList().get(0).getSubMatchList()
-//                                .stream().anyMatch(itemB -> itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())
-//                                        && itemA.getAwayTeamName().equals(itemB.getAwayTeamAllName()) && itemA.setGfId(itemB.getMatchNum())))
-//                .collect(Collectors.toList());
-//        collect1 = collect.stream().sorted(Comparator.comparingInt(Datas::getGfId)).collect(Collectors.toList());
-//        System.out.println(collect1);
+        String jc = sendGetRequest("https://webapi.sporttery.cn/gateway/jc/football/getMatchListV1.qry?clientCode=3001");
+        JCJson jcMatches = new Gson().fromJson(jc, JCJson.class);
+        List<Datas> collect = collect1.stream().filter(itemA ->
+                        jcMatches.getValue().getMatchInfoList().get(0).getSubMatchList()
+                                .stream().anyMatch(itemB -> itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())
+                                        && itemA.getAwayTeamName().equals(itemB.getAwayTeamAllName()) && itemA.setGfId(itemB.getMatchNum())))
+                .collect(Collectors.toList());
+        collect1 = collect.stream().sorted(Comparator.comparingInt(Datas::getGfId)).collect(Collectors.toList());
+        System.out.println(collect1);
 
 
         return collect1;
