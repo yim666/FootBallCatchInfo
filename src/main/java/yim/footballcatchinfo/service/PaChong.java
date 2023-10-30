@@ -45,7 +45,7 @@ public class PaChong {
         System.setProperty("webdriver.chrome.driver", ".\\tooljar\\chromedriver.exe");
 
         // 配置 Chrome WebDriver 选项
-        ChromeOptions   options = new ChromeOptions();
+        ChromeOptions options = new ChromeOptions();
         // 隐藏浏览器窗口
         options.addArguments("--headless");
         options.addArguments("--remote-allow-origins=*");
@@ -222,26 +222,37 @@ public class PaChong {
                         aValue += pa.getValue();
                     }
 
-
+                    if (hValue + aValue < 30000) {
+                        b.append("爆冷");
+                    }else if((hValue <10000 || aValue<10000) && (hValue/aValue>2 || aValue/hValue>2)){
+                        b.append("稳单");
+                    }
+                    double cha = hScore - aScore;
+                    String aaa = "Null";
+                    if(cha>5){
+                        aaa ="胜";
+                    }else if(cha<-5){
+                        aaa="负";
+                    }
                     if (hp / ap > 1.2) {
 
                         b.append("  《胜胜胜》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 4) + "     @");
-                        b.append(hp + "   ###   " + ap);
-                        b.append("  球员状态: " + hScore + "   ###   " + aScore);
+//                        b.append(hp + "   ###   " + ap);
+                        b.append("  球员状态: " + aaa);
                         b.append("  总身价: " + hValue + "   ###   " + aValue);
                         b.append("\n");
                     } else if (ap / hp > 1.2) {
 
                         b.append("  《负负负》    " + "倍数: " + String.valueOf(ap / hp).substring(0, 4) + "     @");
-                        b.append(hp + "   ###   " + ap);
-                        b.append("  球员状态: " + hScore + "   ###   " + aScore);
+//                        b.append(hp + "   ###   " + ap);
+                        b.append("  球员状态: " + aaa);
                         b.append("  总身价: " + hValue + "   ###   " + aValue);
                         b.append("\n"); // 换行
                     } else {
 
                         b.append("  《平平平》    " + "倍数: " + String.valueOf(hp / ap).substring(0, 4) + "     @");
-                        b.append(hp + "   ###   " + ap);
-                        b.append("  球员状态: " + hScore + "   ###   " + aScore);
+//                        b.append(hp + "   ###   " + ap);
+                        b.append("  球员状态: " + aaa);
                         b.append("  总身价: " + hValue + "   ###   " + aValue);
                         b.append("\n"); // 换行
                     }
@@ -283,7 +294,7 @@ public class PaChong {
 
     }
 
-    private static void getTeamPlayers(Document page, Team t)  {
+    private static void getTeamPlayers(Document page, Team t) {
         // 查找具有指定 id 的表格
         Element table = page.getElementById("playersTable");
 
@@ -350,7 +361,7 @@ public class PaChong {
         JCJson jcMatches = new Gson().fromJson(jc, JCJson.class);
         List<Datas> collect = collect1.stream().filter(itemA ->
                         jcMatches.getValue().getMatchInfoList().get(0).getSubMatchList()
-                                .stream().anyMatch(itemB ->itemA.getCompetitionName().equals(itemB.getLeagueAbbName())&& (itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())
+                                .stream().anyMatch(itemB -> itemA.getCompetitionName().equals(itemB.getLeagueAbbName()) && (itemA.getHomeTeamName().equals(itemB.getHomeTeamAllName())
                                         || itemA.getAwayTeamName().equals(itemB.getAwayTeamAllName())) && itemA.setGfId(itemB.getMatchNum())))
                 .collect(Collectors.toList());
         collect1 = collect.stream().sorted(Comparator.comparingInt(Datas::getGfId)).collect(Collectors.toList());
