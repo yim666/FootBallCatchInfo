@@ -60,7 +60,7 @@ public class PaChong {
         options.setCapability(CapabilityType.ACCEPT_SSL_CERTS, true);
 
         // 创建文件写入流
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + "_" + LocalTime.now().getHour() + ".txt"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + "_" + LocalTime.now().getHour() + "_" + LocalTime.now().getMinute()+ ".txt"));
         BufferedWriter writerERR = new BufferedWriter(new FileWriter(filePath + LocalDate.now() + "_" + LocalTime.now().getHour() + "ERROR.txt"));
         List<Datas> datas = _2daysMatches();
 //        System.setProperty("http.proxyHost", "127.0.0.1");
